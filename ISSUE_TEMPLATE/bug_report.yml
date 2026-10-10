@@ -1,0 +1,37 @@
+name: "🐛 Bug Report [বাগ রিপোর্ট]"
+description: "Report a bug or issue [কোনো সমস্যা বা ত্রুটি রিপোর্ট করার জন্য]"
+title: "[BUG]: "
+labels: ["type: bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting the issue! Please provide details below.
+        [ধন্যবাদ সমস্যাটি জানানোর জন্য! নিচে বিস্তারিত তথ্য দিন।]
+  - type: textarea
+    id: description
+    attributes:
+      label: "Bug Description [সমস্যার বিবরণ]"
+      description: "Describe the problem clearly. [কী সমস্যা হচ্ছে তা পরিষ্কারভাবে লিখুন।]"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Steps to Reproduce [সমস্যাটি পুনরায় তৈরি করার ধাপসমূহ]"
+      placeholder: |
+        1. Go to '...' page [১. '...' পেজে যান]
+        2. Click on '...' button [২. '...' বাটনে ক্লিক করুন]
+        3. See error [৩. এররটি দেখতে পাবেন]
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: "Severity Level [কতটুকু জরুরি?]"
+      options:
+        - "Low [সাধারণ সমস্যা]"
+        - "Medium [কাজে সমস্যা হচ্ছে]"
+        - "Critical [অ্যাপ কাজ করছে না বা বন্ধ]"
+    validations:
+      required: true
