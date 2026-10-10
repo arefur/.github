@@ -1,0 +1,17 @@
+name: "✨ Feature Request [ফিচার রিকোয়েস্ট]"
+description: "Propose a new idea or feature [নতুন কোনো আইডিয়া বা ফিচারের প্রস্তাব করতে]"
+title: "[FEAT]: "
+labels: ["type: feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Proposed Feature [প্রস্তাবিত ফিচার]"
+      description: "What does this feature do and why is it needed? [এই ফিচারটি কী কাজ করবে এবং কেন এটি প্রয়োজন?]"
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: "Solution / Outline [সংক্ষিপ্ত রূপরেখা]"
+      description: "How should this be implemented? [এটি কীভাবে বাস্তবায়ন করলে ভালো হয় বলে মনে করেন?]"
