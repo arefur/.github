@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Fast checks on staged files only: secrets + formatting. (Typecheck/tests run on pre-push and in CI.)
+set -euo pipefail
+files=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$files" ] && exit 0
+
+# 1. Never commit env files or private keys
+if echo "$files" | grep -Eq '(^|/)\.env($|\.)' && ! echo "$files" | grep -Eq '(^|/)\.env\.example$'; then
+  echo "✗ Refusing to commit an .env file:" >&2; echo "$files" | grep -E '(^|/)\.env' >&2; exit 1
+fi
+if git diff --cached -U0 | grep -Eq '^\+.*(-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|sk-ant-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{36}|xox[baprs]-[A-Za-z0-9-]{10,})'; then
+  echo "✗ A secret/API key is in the staged diff. Remove it (use env vars)." >&2; exit 1
+fi
+
+# 2. Prettier on staged code (if the repo has prettier)
+code=$(echo "$files" | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|json|css|md)$' || true)
+if [ -n "$code" ] && [ -x node_modules/.bin/prettier ]; then
+  echo "$code" | xargs node_modules/.bin/prettier --write --log-level warn
+  echo "$code" | xargs git add
+fi

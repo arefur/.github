@@ -1,0 +1,53 @@
+# CD: deploys to Coolify only after CI passed on main.
+# Setup (once per repo):
+#   1. Coolify → your app → Webhooks: copy "Deploy Webhook" URL → GitHub secret COOLIFY_WEBHOOK
+#   2. Coolify → Keys & Tokens → API tokens: create one with "deploy" permission → secret COOLIFY_TOKEN
+#   3. Coolify → your app → turn OFF "Auto Deploy" (otherwise it deploys even when CI fails)
+#   4. Optional: repo variable APP_URL (e.g. https://finvyo.com) for the post-deploy health check
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: Trigger Coolify deployment
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          if [ -z "$COOLIFY_WEBHOOK" ] || [ -z "$COOLIFY_TOKEN" ]; then
+            echo "::notice::COOLIFY_WEBHOOK / COOLIFY_TOKEN not set — skipping deploy."; exit 0
+          fi
+          curl --fail-with-body -sS -X GET "$COOLIFY_WEBHOOK" -H "Authorization: Bearer $COOLIFY_TOKEN"
+
+      - name: Health check
+        if: vars.APP_URL != ''
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          # Coolify builds after the webhook returns; wait up to ~10 minutes for the site to answer 2xx/3xx.
+          sleep 60
+          for i in $(seq 1 18); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$APP_URL" || echo 000)
+            echo "attempt $i: $code"
+            case "$code" in 2*|3*) exit 0 ;; esac
+            sleep 30
+          done
+          echo "::error::$APP_URL did not come up after deploy"; exit 1

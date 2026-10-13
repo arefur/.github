@@ -1,0 +1,33 @@
+# Release automation from Conventional Commits (release-please).
+# Every merge to main updates one "Release PR" (CHANGELOG.md + version bump):
+#   feat: → minor (0.1.0 → 0.2.0)   fix:/perf: → patch   feat!: / BREAKING CHANGE → major
+# Merge that PR when you want to cut a release → git tag vX.Y.Z + GitHub Release with notes.
+# Token: uses AUTOMERGE_TOKEN if set, so CI runs on the Release PR (PRs opened by GITHUB_TOKEN start no workflows,
+# and the ruleset's required checks would never report).
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.AUTOMERGE_TOKEN || github.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: Summary
+        if: steps.release.outputs.release_created == 'true'
+        env:
+          TAG: ${{ steps.release.outputs.tag_name }}
+        run: echo "### 🚀 Released $TAG" >> "$GITHUB_STEP_SUMMARY"

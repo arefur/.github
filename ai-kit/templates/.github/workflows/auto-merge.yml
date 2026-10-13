@@ -1,0 +1,67 @@
+# Merge automation with a safety net.
+#  • Risk gate (make it a REQUIRED check): fails when a PR touches risky paths, until you add the label "human-approved".
+#    So auto-merge can never merge DB migrations, auth, payments, workflows or env handling without you.
+#  • Auto-merge: PRs labelled "automerge", and Dependabot patch/minor updates, squash-merge by themselves once all
+#    required checks pass. (scripts/ship.sh turns auto-merge on for your own PRs directly.)
+# Token: set secret AUTOMERGE_TOKEN (fine-grained PAT: Contents + Pull requests read/write on this repo).
+#  With only GITHUB_TOKEN the merge still happens, but GitHub does not start CI/Deploy for that merge commit.
+name: Auto-merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  risk-gate:
+    name: Risk gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check changed paths
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'human-approved') }}
+          RISKY: '(^|/)(migrations?|prisma/migrations|supabase/migrations|drizzle)/|(^|/)(auth|payments?|billing|checkout)(/|\.)|(^|/)middleware\.ts$|^\.github/workflows/|(^|/)\.env|(^|/)Dockerfile$|(^|/)docker-compose'
+        run: |
+          files=$(gh pr diff "$PR" --repo "$GITHUB_REPOSITORY" --name-only)
+          hits=$(echo "$files" | grep -E "$RISKY" || true)
+          if [ -z "$hits" ]; then echo "No risky paths."; exit 0; fi
+          echo "Risky paths touched:"; echo "$hits"
+          if [ "$APPROVED" = "true" ]; then echo "Label human-approved present — OK."; exit 0; fi
+          {
+            echo "### ⚠ Needs a human look"
+            echo "This PR touches risky paths, so it will not auto-merge until someone adds the **human-approved** label:"
+            echo '```'; echo "$hits"; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::Risky paths changed — review, then add label 'human-approved'."
+          exit 1
+
+  enable-auto-merge:
+    name: Enable auto-merge
+    if: >-
+      !github.event.pull_request.draft &&
+      (contains(github.event.pull_request.labels.*.name, 'automerge') || github.event.pull_request.user.login == 'dependabot[bot]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dependabot metadata
+        id: meta
+        if: github.event.pull_request.user.login == 'dependabot[bot]'
+        uses: dependabot/fetch-metadata@v2
+
+      - name: Turn on auto-merge (squash)
+        if: github.event.pull_request.user.login != 'dependabot[bot]' || steps.meta.outputs.update-type != 'version-update:semver-major'
+        env:
+          GH_TOKEN: ${{ secrets.AUTOMERGE_TOKEN || github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash --delete-branch "$PR_URL"
+
+      - name: Major Dependabot bump — leave for a human
+        if: steps.meta.outputs.update-type == 'version-update:semver-major'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr comment "$PR_URL" --body "Major version bump — not auto-merged. Check the changelog, then merge by hand."

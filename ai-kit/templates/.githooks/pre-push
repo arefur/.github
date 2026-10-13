@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Blocks pushes that would fail CI anyway. Skip once with: SKIP_CHECKS=1 git push
+set -euo pipefail
+[ "${SKIP_CHECKS:-0}" = 1 ] && exit 0
+[ -f package.json ] || exit 0
+echo "▶ pre-push: typecheck + unit tests"
+npm run -s typecheck --if-present
+npm run -s test --if-present

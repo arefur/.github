@@ -1,0 +1,62 @@
+# AI code review on every PR, plus "@claude <request>" in PR/issue comments.
+# Setup (once): run `claude setup-token` on your Mac (uses your Claude Pro/Max plan, no API billing)
+#               → GitHub secret CLAUDE_CODE_OAUTH_TOKEN. Install the Claude GitHub App: `/install-github-app` in Claude Code.
+# No secret set → the job is skipped.
+name: Claude review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  review:
+    if: >-
+      (github.event_name == 'pull_request' && !github.event.pull_request.draft) ||
+      (github.event_name != 'pull_request' && contains(github.event.comment.body, '@claude'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check token
+        id: tok
+        env:
+          T: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: echo "ok=$([ -n "$T" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - if: steps.tok.outputs.ok == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Review the PR
+        if: steps.tok.outputs.ok == 'true' && github.event_name == 'pull_request'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          use_sticky_comment: true
+          claude_args: --model claude-sonnet-5-5 --max-turns 15
+          prompt: |
+            Review pull request ${{ github.repository }} number ${{ github.event.pull_request.number }} against AGENTS.md.
+            Report only real problems, most severe first, as inline comments where possible:
+            1. Bugs and unhandled edge cases.
+            2. Security: auth, input validation, injection, secrets in code.
+            3. Tests: for every changed function, list the missing test cases (happy path, boundary, invalid input, error path) and say which existing tests no longer prove anything.
+            4. Performance traps: N+1 queries, unbounded loops, missing indexes, large client bundles.
+            Skip style nits the linter already catches.
+            End with one verdict line: APPROVE, or CHANGES NEEDED with the top 3 fixes.
+
+      - name: Answer @claude
+        if: steps.tok.outputs.ok == 'true' && github.event_name != 'pull_request'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: --model claude-sonnet-5-5 --max-turns 25

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Enforces Conventional Commits: type(scope)!: subject
+msg=$(head -1 "$1")
+case "$msg" in Merge*|Revert*|fixup!*|squash!*) exit 0 ;; esac
+if ! echo "$msg" | grep -Eq '^(feat|fix|chore|docs|refactor|perf|test|build|ci|style|revert)(\([a-z0-9._/-]+\))?!?: .{3,100}$'; then
+  echo "✗ Commit message must look like: feat(auth): add Google login" >&2
+  echo "  types: feat fix chore docs refactor perf test build ci style revert" >&2
+  echo "  got:   $msg" >&2
+  exit 1
+fi
