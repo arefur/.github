@@ -2,6 +2,7 @@
 # Setup (once): run `claude setup-token` on your Mac (uses your Claude Pro/Max plan, no API billing)
 #               → GitHub secret CLAUDE_CODE_OAUTH_TOKEN. Install the Claude GitHub App: `/install-github-app` in Claude Code.
 # No secret set → the job is skipped.
+# Model: action default (no --model) — a hard-coded id breaks the job silently when it is renamed or retired.
 name: Claude review
 
 on:
@@ -43,7 +44,7 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           use_sticky_comment: true
-          claude_args: --model claude-sonnet-5-5 --max-turns 15
+          claude_args: --max-turns 15
           prompt: |
             Review pull request ${{ github.repository }} number ${{ github.event.pull_request.number }} against AGENTS.md.
             Report only real problems, most severe first, as inline comments where possible:
@@ -59,4 +60,4 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          claude_args: --model claude-sonnet-5-5 --max-turns 25
+          claude_args: --max-turns 25
