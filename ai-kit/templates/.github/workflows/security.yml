@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
       - if: hashFiles('pnpm-lock.yaml') != ''
         uses: pnpm/action-setup@v4
       - name: Secrets
@@ -46,6 +46,6 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install semgrep
-        run: pip install semgrep==1.95.0
+        run: pip install semgrep==1.180.0
       - name: Semgrep
         run: bash scripts/security-scan.sh code

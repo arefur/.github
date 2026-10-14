@@ -19,6 +19,11 @@
 - Build: `{{PM}} run build`
 Run type-check + lint + tests before saying a task is done. If one fails, fix it or say so plainly.
 
+## Dependencies — latest stable, always
+- New or upgraded dependencies, runtimes and services use the latest stable release (npm `latest`, never RC/beta/canary; Node = current Active LTS; Postgres = latest major).
+- Exception only when a toolchain peer doesn't support it yet: use the newest supported version and list it under "Notes for this repo" with the blocker.
+- Read the official migration guide before a major upgrade; upgrade in its own commit with the full gate green.
+
 ## Code rules
 - TypeScript strict. No `any`, no `@ts-ignore` without a one-line reason.
 - Server Components by default; add `"use client"` only where state/effects/browser APIs are needed.

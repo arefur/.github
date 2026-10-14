@@ -57,9 +57,9 @@ done
 
 # 4. dev dependencies
 if [ "${SKIP_INSTALL:-0}" != 1 ]; then
-  # vitest 5 needs @types/node >= 22 (matches Node 22 used in CI); upgrade only if older.
+  # Match @types/node to the Node LTS used in CI (24); upgrade only if older.
   NODE_TYPES=$(node -p "(require('./package.json').devDependencies||{})['@types/node']||''")
-  case "$NODE_TYPES" in *18*|*20*|*21*) $ADD @types/node@^22 ;; esac
+  case "$NODE_TYPES" in *18*|*20*|*21*|*22*|*23*) $ADD @types/node@^24 ;; esac
   $ADD vitest @vitest/coverage-v8 @vitejs/plugin-react vite-tsconfig-paths jsdom \
     @testing-library/react @testing-library/dom @testing-library/jest-dom @testing-library/user-event \
     @playwright/test

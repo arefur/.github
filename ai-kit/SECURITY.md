@@ -10,7 +10,7 @@ npm run security
 |---|---|---|---|---|
 | Secrets | gitleaks 8.21.2 (working tree + **entire git history**) | `npm run security` + pre-commit hook | "Secrets & dependencies" | any leak |
 | Dependencies | `npm audit` through `scripts/audit-gate.mjs` | same | same | high/critical in production deps, unless allowlisted with a reason and an expiry ≤ 90 days |
-| Code | semgrep 1.95.0: OWASP Top 10, Next.js, React, TypeScript, secrets packs + house rules (`.semgrep.yml`) | same | "Code scan (semgrep)" | ERROR severity |
+| Code | semgrep 1.180.0: OWASP Top 10, Next.js, React, TypeScript, secrets packs + house rules (`.semgrep.yml`) | same | "Code scan (semgrep)" | ERROR severity |
 | Headers | `src/lib/security/headers.ts`, wired into `next.config.ts` | — | e2e smoke test fails on CSP console errors | — |
 | Review + fixes | `security-review` skill (OWASP checklist → report → failing attack test → fix) | ask Claude | `claude-review.yml` checks security on every PR | — |
 | Risky paths | Risk gate (auth, payments, migrations, workflows, env, Docker) | — | "Risk gate" | until the `human-approved` label is added |

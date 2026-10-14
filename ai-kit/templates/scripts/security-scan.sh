@@ -6,7 +6,7 @@
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)" || exit 1
 WHAT="${1:-all}"; FAIL=0
-GITLEAKS_VERSION=8.21.2; SEMGREP_VERSION=1.95.0
+GITLEAKS_VERSION=8.21.2; SEMGREP_VERSION=1.180.0
 BIN="${XDG_CACHE_HOME:-$HOME/.cache}/security-scan"; mkdir -p "$BIN"
 
 gitleaks_bin() {
@@ -23,7 +23,14 @@ if [ "$WHAT" = all ] || [ "$WHAT" = secrets ]; then
   CFG=(); [ -f .gitleaks.toml ] && CFG=(--config .gitleaks.toml)
   if git rev-parse --git-dir >/dev/null 2>&1; then
     "$GL" git . "${CFG[@]}" --no-banner --redact -v --exit-code 1 || FAIL=1                # every commit in history
-    "$GL" dir . "${CFG[@]}" --no-banner --redact -v --exit-code 1 || FAIL=1               # working tree incl. new files
+    # working tree: only files git would commit (tracked + untracked, minus .gitignore'd like .env.local, node_modules, .next)
+    WT=$(mktemp -d); git ls-files -co --exclude-standard -z | xargs -0 tar cf - 2>/dev/null | tar xf - -C "$WT"
+    [ -f .gitleaks.toml ] && cp .gitleaks.toml "$WT/"; [ -f .gitleaksignore ] && cp .gitleaksignore "$WT/"
+    (cd "$WT" && "$GL" dir . "${CFG[@]}" --no-banner --redact -v --exit-code 1) || FAIL=1
+    rm -rf "$WT"
+    # an env file that git tracks is a leak even if today's values look harmless
+    TRACKED_ENV=$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '\.(example|sample|template)$' || true)
+    if [ -n "$TRACKED_ENV" ]; then echo "✗ env file(s) tracked by git — run: git rm --cached <file> and add to .gitignore:"; echo "$TRACKED_ENV"; FAIL=1; fi
   else
     "$GL" dir . "${CFG[@]}" --no-banner --redact -v --exit-code 1 || FAIL=1
   fi
@@ -39,11 +46,12 @@ fi
 
 if [ "$WHAT" = all ] || [ "$WHAT" = code ]; then
   echo "━━ Code (semgrep: OWASP Top 10, Next.js, React, TypeScript, secrets) — ERROR severity blocks"
+  # fastest + most reliable on a Mac: brew install semgrep
   if command -v semgrep >/dev/null; then SG=(semgrep)
   elif command -v pipx >/dev/null; then SG=(pipx run "semgrep==${SEMGREP_VERSION}")
-  elif command -v uvx >/dev/null; then SG=(uvx "semgrep==${SEMGREP_VERSION}")
+  elif command -v uvx >/dev/null; then SG=(uvx --python 3.12 "semgrep==${SEMGREP_VERSION}")
   elif command -v docker >/dev/null; then SG=(docker run --rm -v "$PWD:/src" -w /src "semgrep/semgrep:${SEMGREP_VERSION}" semgrep)
-  else echo "semgrep not found — install with: brew install semgrep   (skipped)"; SG=(); fi
+  else echo "✗ semgrep not found — install it: brew install semgrep"; SG=(); FAIL=1; fi
   if [ ${#SG[@]} -gt 0 ]; then
     "${SG[@]}" scan --metrics=off --quiet \
       --config p/owasp-top-ten --config p/nextjs --config p/react --config p/typescript --config p/secrets \
