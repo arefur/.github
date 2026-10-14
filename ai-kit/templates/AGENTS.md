@@ -37,6 +37,14 @@ Run type-check + lint + tests before saying a task is done. If one fails, fix it
 - A failing test that reveals a code bug is reported, never "fixed" by weakening the assertion.
 - CI (`.github/workflows/ci.yml`) must be green before merge: typecheck, lint, unit+coverage, build, e2e.
 
+## Security
+- Every route handler / server action that touches user data checks the session AND ownership (`where: { id, userId }`), validates input with zod, and returns explicit fields only.
+- No secrets in `NEXT_PUBLIC_*`; server-only modules start with `import 'server-only'`; never log tokens/passwords/OTP/NID/card numbers.
+- No raw SQL interpolation, no `eval`, no unsanitized `dangerouslySetInnerHTML` (use DOMPurify).
+- Webhooks verify signatures and are idempotent; amounts come from the server, never the client.
+- `{{PM}} run security` (gitleaks + dependency audit + semgrep) must pass; CI enforces it. For a review + fixes use the `security-review` skill.
+- New tools (MCP servers, plugins, hooks) only through the `toolsmith` skill: vetted, version-pinned, approved by the owner.
+
 ## Workflow
 - For anything touching 3+ files: write a short plan first and wait for approval.
 - Small, reviewable diffs. Don't reformat files you didn't otherwise change.

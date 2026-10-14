@@ -32,8 +32,10 @@ if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
     gh label create automerge --color 0E8A16 --description "Merge automatically when checks pass" --repo "$REPO" 2>/dev/null || true
     gh label create human-approved --color D93F0B --description "Owner reviewed risky changes" --repo "$REPO" 2>/dev/null || true
     DEFAULT=$(gh repo view "$REPO" --json defaultBranchRef -q .defaultBranchRef.name)
+    CHECKS='{ "context": "Typecheck, lint, unit tests" }, { "context": "Build + e2e (Playwright)" }, { "context": "Risk gate" }'
+    [ -f .github/workflows/security.yml ] && CHECKS="$CHECKS"', { "context": "Secrets & dependencies" }, { "context": "Code scan (semgrep)" }'
     if ! gh api "repos/$REPO/rulesets" -q '.[].name' 2>/dev/null | grep -qx "protect-$DEFAULT"; then
-      gh api -X POST "repos/$REPO/rulesets" --input - >/dev/null <<JSON && echo "  ruleset protect-$DEFAULT: PR required, CI + risk gate required, no force-push"
+      gh api -X POST "repos/$REPO/rulesets" --input - >/dev/null <<JSON && echo "  ruleset protect-$DEFAULT: PR required, CI + risk gate (+ security if present) required, no force-push"
 { "name": "protect-$DEFAULT", "target": "branch", "enforcement": "active",
   "conditions": { "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] } },
   "bypass_actors": [],
@@ -42,7 +44,7 @@ if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
     { "type": "pull_request", "parameters": { "required_approving_review_count": 0, "dismiss_stale_reviews_on_push": false,
       "require_code_owner_review": false, "require_last_push_approval": false, "required_review_thread_resolution": false } },
     { "type": "required_status_checks", "parameters": { "strict_required_status_checks_policy": false,
-      "required_status_checks": [ { "context": "Typecheck, lint, unit tests" }, { "context": "Build + e2e (Playwright)" }, { "context": "Risk gate" } ] } }
+      "required_status_checks": [ $CHECKS ] } }
   ] }
 JSON
     fi

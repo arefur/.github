@@ -24,7 +24,21 @@
       "Edit(./.env*)",
       "Bash(rm -rf*)",
       "Bash(git push --force*)",
-      "Bash(git push -f*)"
+      "Bash(git push -f*)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Bash(curl * | bash*)",
+      "Bash(curl * | sh*)",
+      "Bash(wget * | sh*)"
+    ],
+    "ask": [
+      "Bash(claude mcp add*)",
+      "Bash(claude mcp add-json*)",
+      "Bash(claude plugin install*)",
+      "Bash(claude plugin marketplace add*)",
+      "Edit(./.mcp.json)",
+      "Edit(./.claude/settings.json)",
+      "Write(./.mcp.json)"
     ]
   },
   "hooks": {

@@ -1,0 +1,51 @@
+# Security: secrets (gitleaks), vulnerable deps (npm/pnpm audit), code (semgrep OWASP + Next.js + house rules).
+# Runs on every PR, every push to main and weekly (new CVEs appear in old code). Free — no GitHub Advanced Security needed.
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "30 3 * * 1"   # Monday 09:30 Dhaka
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secrets-deps:
+    name: Secrets & dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - if: hashFiles('pnpm-lock.yaml') != ''
+        uses: pnpm/action-setup@v4
+      - name: Secrets
+        run: bash scripts/security-scan.sh secrets
+      - name: Dependencies
+        run: bash scripts/security-scan.sh deps
+
+  code:
+    name: Code scan (semgrep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install semgrep
+        run: pip install semgrep==1.95.0
+      - name: Semgrep
+        run: bash scripts/security-scan.sh code

@@ -1,5 +1,11 @@
 # ai-kit — one set of rules for Claude Code, Antigravity and Copilot
 
+**One command per repo, which does everything below:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/arefur/.github/main/ai-kit/setup-all.sh | bash
+```
+Guides: [TESTING-CICD.md](TESTING-CICD.md) · [SECURITY.md](SECURITY.md) · [GIT-AUTOMATION.md](GIT-AUTOMATION.md)
+
 You write the rules once in `AGENTS.md`, and all three tools read them:
 
 | Tool | How it reads the rules |

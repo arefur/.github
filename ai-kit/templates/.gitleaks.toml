@@ -1,0 +1,11 @@
+# gitleaks: default rules + paths that are build output, never source.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "build output and lockfiles"
+paths = [
+  '''(^|/)\.next/''', '''(^|/)node_modules/''', '''(^|/)coverage/''', '''(^|/)playwright-report/''',
+  '''(^|/)test-results/''', '''(^|/)dist/''', '''(^|/)out/''',
+  '''package-lock\.json$''', '''pnpm-lock\.yaml$''', '''yarn\.lock$''',
+]

@@ -1,0 +1,39 @@
+# House rules on top of the semgrep registry packs (Next.js / A M Soft BD conventions).
+rules:
+  - id: next-public-secret
+    languages: [generic]
+    severity: ERROR
+    message: "NEXT_PUBLIC_* is shipped to the browser. Never put a secret, key or token in it."
+    pattern-regex: 'NEXT_PUBLIC_[A-Z0-9_]*(SECRET|PRIVATE|TOKEN|PASSWORD|SERVICE_ROLE|API_KEY)'
+    paths:
+      include: ["*.ts", "*.tsx", "*.js", "*.mjs", ".env.example"]
+
+  - id: route-handler-without-auth
+    languages: [typescript]
+    severity: WARNING
+    message: "Mutating route handler with no auth check. Every POST/PUT/PATCH/DELETE must verify the user and that they own the resource."
+    paths:
+      include: ["**/app/**/route.ts"]
+    patterns:
+      - pattern-regex: 'export\s+async\s+function\s+(POST|PUT|PATCH|DELETE)\b'
+      - pattern-not-regex: '(?s)\b(auth|getServerSession|currentUser|requireUser|getUser|verifySession)\s*\('
+
+  - id: raw-sql-interpolation
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: "Raw SQL built with string interpolation (SQL injection). Use parameters: prisma.$queryRaw`... ${x}` (tagged) or $1 placeholders."
+    pattern-either:
+      - pattern: '$DB.$queryRawUnsafe(`...${$X}...`, ...)'
+      - pattern: '$DB.$executeRawUnsafe(`...${$X}...`, ...)'
+      - pattern: '$DB.query(`...${$X}...`, ...)'
+      - pattern: '$DB.query("..." + $X, ...)'
+
+  - id: dangerously-set-html-unsanitized
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: "dangerouslySetInnerHTML with dynamic content (XSS). Sanitize first with DOMPurify (isomorphic-dompurify)."
+    patterns:
+      - pattern: '<$EL dangerouslySetInnerHTML={{__html: $X}} />'
+      - pattern-not: '<$EL dangerouslySetInnerHTML={{__html: "..."}} />'
+      - pattern-not: '<$EL dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(...)}} />'
+      - pattern-not: '<$EL dangerouslySetInnerHTML={{__html: sanitize(...)}} />'
