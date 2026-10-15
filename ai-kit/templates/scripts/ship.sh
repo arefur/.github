@@ -27,6 +27,12 @@ AHEAD=0; [ -n "$BASE" ] && AHEAD=$(git rev-list --count "$BASE..HEAD")
 # back on the default branch, in sync with GitHub, whatever happens after the push
 finish() {
   git switch -q "$DEFAULT" 2>/dev/null && git pull -q --ff-only 2>/dev/null || true
+  # tidy: drop local branches whose GitHub branch is gone (deleted after its PR merged)
+  git fetch -q --prune origin 2>/dev/null || true
+  for b in $(git for-each-ref --format='%(refname:short) %(upstream:track)' refs/heads | awk '$2=="[gone]"{print $1}'); do
+    [ "$b" = "$DEFAULT" ] || [ "$b" = "$(git branch --show-current)" ] && continue
+    git branch -q -D "$b" && echo "🧹 removed merged branch $b"
+  done
   echo "↩ back on $DEFAULT"
 }
 
