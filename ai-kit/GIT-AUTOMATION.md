@@ -32,7 +32,7 @@ Optional: add a secret `AUTOMERGE_TOKEN` (a fine-grained PAT with Contents and P
 | `.githooks/commit-msg` | every commit | rejects messages that are not Conventional Commits (`feat(auth): …`) |
 | `.githooks/pre-commit` | every commit | blocks `.env*` files and API keys (Anthropic, GitHub, AWS, Slack, private keys); runs Prettier on staged files |
 | `.githooks/pre-push` | every push | typecheck + unit tests (`SKIP_CHECKS=1 git push` to skip once) |
-| `scripts/ship.sh` / `npm run ship` | when work is done | checks → branch (if on main) → commit → push → PR → `gh pr merge --auto --squash` |
+| `scripts/ship.sh` / `npm run ship` | when work is done | checks → branch (if on main; local commits on main move too) → commit → push → PR → `gh pr merge --auto --squash` → back on main |
 | `.claude/skills/ship` | "ship it" in Claude Code | Claude writes the commit message, decides whether to use `--no-merge`, and runs ship.sh |
 | `auto-merge.yml` → Risk gate | every PR | fails when migrations, auth, payments/billing/checkout, middleware, workflows, `.env*` or Docker files change, until a human adds `human-approved` |
 | `auto-merge.yml` → Enable auto-merge | PR with label `automerge`, or Dependabot | Dependabot patch/minor updates merge by themselves; a major bump gets a comment and waits for you |
