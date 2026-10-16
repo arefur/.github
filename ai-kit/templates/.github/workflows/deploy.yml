@@ -35,7 +35,7 @@ jobs:
           if [ -z "$COOLIFY_WEBHOOK" ] || [ -z "$COOLIFY_TOKEN" ]; then
             echo "::notice::COOLIFY_WEBHOOK / COOLIFY_TOKEN not set — skipping deploy."; exit 0
           fi
-          curl --fail-with-body -sS -X GET "$COOLIFY_WEBHOOK" -H "Authorization: Bearer $COOLIFY_TOKEN"
+          curl --fail-with-body -sS -X POST "$COOLIFY_WEBHOOK" -H "Authorization: Bearer $COOLIFY_TOKEN"
 
       - name: Health check
         if: vars.APP_URL != ''
