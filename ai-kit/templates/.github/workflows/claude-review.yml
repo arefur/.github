@@ -21,9 +21,11 @@ permissions:
 
 jobs:
   review:
+    # Bots (dependabot, release-please, github-actions) have no write access → the action refuses them.
     if: >-
+      !endsWith(github.actor, '[bot]') && (
       (github.event_name == 'pull_request' && !github.event.pull_request.draft) ||
-      (github.event_name != 'pull_request' && contains(github.event.comment.body, '@claude'))
+      (github.event_name != 'pull_request' && contains(github.event.comment.body, '@claude')))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -43,6 +45,9 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Use the workflow token instead of the Claude GitHub App token exchange (fails with 401 when the app
+          # isn't installed on this repo or the actor lacks write access).
+          github_token: ${{ github.token }}
           use_sticky_comment: true
           claude_args: --max-turns 15
           prompt: |
@@ -60,4 +65,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Use the workflow token instead of the Claude GitHub App token exchange (fails with 401 when the app
+          # isn't installed on this repo or the actor lacks write access).
+          github_token: ${{ github.token }}
           claude_args: --max-turns 25
